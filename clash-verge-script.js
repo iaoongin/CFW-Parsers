@@ -356,6 +356,7 @@ const ruleProviders = {
 
 // 规则
 const rules = [
+  "DOMAIN-SUFFIX,serv00.com,DIRECT",
   "PROCESS-NAME,v2ray,DIRECT",
   "PROCESS-NAME,xray,DIRECT",
   "PROCESS-NAME,naive,DIRECT",
@@ -535,7 +536,7 @@ let proxy = {
 let automatic = {
   name: "♻️ 自动选择",
   type: "url-test",
-  url: "http://www.gstatic.com/generate_204",
+  url: "https://www.gstatic.com/generate_204",
   interval: intervalTime, //更新周期
   proxies: [],
 };
@@ -543,7 +544,7 @@ let automatic = {
 let loadBalance = {
   name: "🔄 负载均衡",
   type: "load-balance",
-  url: "http://www.gstatic.com/generate_204",
+  url: "https://www.gstatic.com/generate_204",
   interval: intervalTime, //更新周期
   proxies: [],
 };
@@ -551,20 +552,22 @@ let loadBalance = {
 let selectArea = {
   name: "✅ 选择地区",
   type: "select",
+  interval: intervalTime, //更新周期
   proxies: ["♻️ 自动选择"],
 };
 //选择节点
 let selectNode = {
   name: "✨ 选择节点",
   type: "select",
+  interval: intervalTime, //更新周期
   proxies: ["♻️ 自动选择"],
 };
 //故障转移
 let fallback = {
   name: "🔯 故障转移",
   type: "fallback",
-  url: "http://www.gstatic.com/generate_204",
-  interval: 600,
+  url: "https://www.gstatic.com/generate_204",
+  interval: intervalTime, //更新周期
   proxies: [],
 };
 //直连
