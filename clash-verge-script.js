@@ -165,6 +165,7 @@ const rules = [
   "MATCH,🐟 未命中规则",
 ];
 
+// 地区对象name 地区，ext 额外匹配参数，如英国、GB等
 let areas = [
   { flag: "🇦🇨", name: "阿森松岛" },
   { flag: "🇦🇩", name: "安道尔" },
@@ -247,7 +248,7 @@ let areas = [
   { flag: "🇫🇴", name: "法罗群岛" },
   { flag: "🇫🇷", name: "法国" },
   { flag: "🇬🇦", name: "加蓬" },
-  { flag: "🇬🇧", name: "英国" },
+  { flag: "🇬🇧", name: "英国", ext: ["GB"] },
   { flag: "🇬🇩", name: "格林纳达" },
   { flag: "🇬🇪", name: "格鲁吉亚" },
   { flag: "🇬🇫", name: "法属圭亚那" },
@@ -265,7 +266,7 @@ let areas = [
   { flag: "🇬🇺", name: "关岛" },
   { flag: "🇬🇼", name: "几内亚比绍" },
   { flag: "🇬🇾", name: "圭亚那" },
-  { flag: "🇭🇰", name: "香港" },
+  { flag: "🇭🇰", name: "香港", ext: ["HK"] },
   { flag: "🇭🇲", name: "赫德岛和麦克唐纳群岛" },
   { flag: "🇭🇳", name: "洪都拉斯" },
   { flag: "🇭🇷", name: "克罗地亚" },
@@ -285,7 +286,7 @@ let areas = [
   { flag: "🇯🇪", name: "泽西岛" },
   { flag: "🇯🇲", name: "牙买加" },
   { flag: "🇯🇴", name: "约旦" },
-  { flag: "🇯🇵", name: "日本" },
+  { flag: "🇯🇵", name: "日本", ext: ["JP"] },
   { flag: "🇰🇪", name: "肯尼亚" },
   { flag: "🇰🇬", name: "吉尔吉斯斯坦" },
   { flag: "🇰🇭", name: "柬埔寨" },
@@ -370,6 +371,7 @@ let areas = [
   { flag: "🇸🇩", name: "苏丹" },
   { flag: "🇸🇪", name: "瑞典" },
   { flag: "🇸🇬", name: "新加坡" },
+  { flag: "🇸🇬", name: "SGP" },
   { flag: "🇸🇭", name: "圣赫勒拿" },
   { flag: "🇸🇮", name: "斯洛文尼亚" },
   { flag: "🇸🇯", name: "斯瓦尔巴和扬马延" },
@@ -400,13 +402,13 @@ let areas = [
   { flag: "🇹🇷", name: "土耳其" },
   { flag: "🇹🇹", name: "特立尼达和多巴哥" },
   { flag: "🇹🇻", name: "图瓦卢" },
-  { flag: "🇹🇼", name: "台湾" },
+  { flag: "🇹🇼", name: "台湾", ext: ["TW"] },
   { flag: "🇹🇿", name: "坦桑尼亚" },
   { flag: "🇺🇦", name: "乌克兰" },
   { flag: "🇺🇬", name: "乌干达" },
   { flag: "🇺🇲", name: "美国本土外小岛屿" },
   { flag: "🇺🇳", name: "联合国" },
-  { flag: "🇺🇸", name: "美国" },
+  { flag: "🇺🇸", name: "美国", ext: ["US"] },
   { flag: "🇺🇾", name: "乌拉圭" },
   { flag: "🇺🇿", name: "乌兹别克斯坦" },
   { flag: "🇻🇦", name: "梵蒂冈" },
@@ -706,6 +708,31 @@ let builtInProxyGroups = [
   others,
 ];
 
+/**
+ * 匹配地区
+ * @param {*} proxyName 节点名
+ * @param {*} area 地区对象
+ */
+function matchArea(proxyName, area) {
+  if (!proxyName) {
+    return false
+  }
+
+  if (proxyName.indexOf(area.name) !== -1) {
+    return true
+  }
+
+  if (!area.ext) {
+    return false
+  }
+  for (let extName of area.ext) {
+    if (proxyName.indexOf(extName) !== -1) {
+      return true
+    }
+  }
+  return false
+}
+
 function main(config, profileName) {
   let content = JSON.parse(JSON.stringify(config));
   //置空proxy-groups,添加自己的规则
@@ -722,7 +749,7 @@ function main(config, profileName) {
     for (let proxy of content.proxies) {
       if (proxy.server === undefined) break;
       //如果匹配上了就加入
-      if (proxy.name.indexOf(area.name) !== -1) {
+      if (matchArea(proxy.name, area)) {
         if (areaJson["name"] === regionName) {
           proxies.push(proxy.name);
         } else {
@@ -734,7 +761,7 @@ function main(config, profileName) {
         //负载均衡
         loadBalance["proxies"].push(proxy.name);
       } else {
-        // console.log("匹配不成功",proxy.name,area.name)
+        console.log("匹配不成功", proxy.name, area.name)
       }
     }
     if (areaJson["name"]) {
