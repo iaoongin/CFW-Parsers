@@ -2,6 +2,8 @@
 
 // 规则
 const rules = [
+  "DOMAIN-SUFFIX,graalvm.org,🪜 代理",
+  "DOMAIN-SUFFIX,linux.do,🪜 代理",
   "DOMAIN-SUFFIX,wallhaven.cc,🪜 代理",
   "DOMAIN-SUFFIX,v2ex.com,🪜 代理",
   "DOMAIN-SUFFIX,grok.com,🪜 代理",
@@ -522,7 +524,6 @@ const ruleProviders = {
   },
 };
 
-
 //切换时间 5分钟
 let intervalTime = 300;
 
@@ -713,24 +714,32 @@ let builtInProxyGroups = [
  * @param {*} proxyName 节点名
  * @param {*} area 地区对象
  */
-function matchArea(proxyName, area) {
+function matchArea(proxyName, area, excludes) {
   if (!proxyName) {
-    return false
+    return false;
+  }
+
+  if (excludes) {
+    for (let excludeName of excludes) {
+      if (proxyName.indexOf(excludeName) !== -1) {
+        return false;
+      }
+    }
   }
 
   if (proxyName.indexOf(area.name) !== -1) {
-    return true
+    return true;
   }
 
   if (!area.ext) {
-    return false
+    return false;
   }
   for (let extName of area.ext) {
     if (proxyName.indexOf(extName) !== -1) {
-      return true
+      return true;
     }
   }
-  return false
+  return false;
 }
 
 function main(config, profileName) {
@@ -741,6 +750,9 @@ function main(config, profileName) {
   // 覆盖原配置中的规则
   content["rule-providers"] = ruleProviders;
 
+  // 位置地区的
+  let unknownAreaProxies = [];
+
   //遍历地区来分组
   for (let area of areas) {
     let areaJson = {},
@@ -749,7 +761,7 @@ function main(config, profileName) {
     for (let proxy of content.proxies) {
       if (proxy.server === undefined) break;
       //如果匹配上了就加入
-      if (matchArea(proxy.name, area)) {
+      if (matchArea(proxy.name, area, "🔒")) {
         if (areaJson["name"] === regionName) {
           proxies.push(proxy.name);
         } else {
@@ -761,7 +773,7 @@ function main(config, profileName) {
         //负载均衡
         loadBalance["proxies"].push(proxy.name);
       } else {
-        console.log("匹配不成功", proxy.name, area.name)
+        // console.log("匹配不成功", proxy.name, area.name)
       }
     }
     if (areaJson["name"]) {
@@ -778,6 +790,9 @@ function main(config, profileName) {
     }
   }
 
+  // 处理未知地区分组
+  handleUnknownAreaProxies(content, unknownAreaProxies);
+
   /**
    * 添加各种分组。
    *
@@ -786,4 +801,41 @@ function main(config, profileName) {
   content["proxy-groups"] = builtInProxyGroups.concat(content["proxy-groups"]);
   console.log(content);
   return content;
+}
+
+// 处理未知地区分组
+function handleUnknownAreaProxies(content, unknownAreaProxies) {
+  for (let proxy of content.proxies) {
+    for (let addedProxyName of selectNode["proxies"]) {
+      if (proxy.name == addedProxyName) {
+        continue;
+      }
+    }
+    unknownAreaProxies.push(proxy.name);
+  }
+
+  for (let proxyName of unknownAreaProxies) {
+    //选择节点
+    selectNode["proxies"].push(proxyName);
+    //负载均衡
+    loadBalance["proxies"].push(proxyName);
+  }
+
+  console.log("unknownAreaProxies:::", unknownAreaProxies);
+  // 保存未知地区的
+  if (unknownAreaProxies.length > 0) {
+    let areaJson = {};
+    let regionName = "未知地区";
+    areaJson["name"] = regionName;
+    areaJson["type"] = "url-test";
+    areaJson["proxies"] = unknownAreaProxies;
+    areaJson["url"] = "https://www.gstatic.com/generate_204";
+    areaJson["interval"] = intervalTime;
+    //放到yml中
+    content["proxy-groups"].push(areaJson);
+    //对几个预置的规则进行处理
+    selectArea["proxies"].push(regionName);
+    fallback["proxies"].push(regionName);
+    automatic["proxies"].push(regionName);
+  }
 }
