@@ -526,6 +526,8 @@ const ruleProviders = {
 
 //切换时间 5分钟
 let intervalTime = 300;
+//测速链接
+let speedTestUrl = "https://www.gstatic.com/generate_204";
 
 //需要代理的
 let proxy = {
@@ -545,7 +547,7 @@ let proxy = {
 let automatic = {
   name: "♻️ 自动选择",
   type: "url-test",
-  url: "https://www.gstatic.com/generate_204",
+  url: speedTestUrl,
   interval: intervalTime, //更新周期
   proxies: [],
 };
@@ -553,7 +555,7 @@ let automatic = {
 let loadBalance = {
   name: "🔄 负载均衡",
   type: "load-balance",
-  url: "https://www.gstatic.com/generate_204",
+  url: speedTestUrl,
   interval: intervalTime, //更新周期
   proxies: [],
 };
@@ -575,7 +577,7 @@ let selectNode = {
 let fallback = {
   name: "🔯 故障转移",
   type: "fallback",
-  url: "https://www.gstatic.com/generate_204",
+  url: speedTestUrl,
   interval: intervalTime, //更新周期
   proxies: [],
 };
@@ -750,9 +752,6 @@ function main(config, profileName) {
   // 覆盖原配置中的规则
   content["rule-providers"] = ruleProviders;
 
-  // 位置地区的
-  let unknownAreaProxies = [];
-
   //遍历地区来分组
   for (let area of areas) {
     let areaJson = {},
@@ -779,7 +778,7 @@ function main(config, profileName) {
     if (areaJson["name"]) {
       areaJson["type"] = "url-test";
       areaJson["proxies"] = proxies;
-      areaJson["url"] = "https://www.gstatic.com/generate_204";
+      areaJson["url"] = speedTestUrl;
       areaJson["interval"] = intervalTime;
       //放到yml中
       content["proxy-groups"].push(areaJson);
@@ -791,7 +790,7 @@ function main(config, profileName) {
   }
 
   // 处理未知地区分组
-  handleUnknownAreaProxies(content, unknownAreaProxies);
+  handleUnknownAreaProxies(content);
 
   /**
    * 添加各种分组。
@@ -799,20 +798,18 @@ function main(config, profileName) {
    * {@link https://github.com/Loyalsoldier/clash-rules}
    */
   content["proxy-groups"] = builtInProxyGroups.concat(content["proxy-groups"]);
-  console.log(content);
+  // console.log(content);
   return content;
 }
 
 // 处理未知地区分组
-function handleUnknownAreaProxies(content, unknownAreaProxies) {
-  for (let proxy of content.proxies) {
-    for (let addedProxyName of selectNode["proxies"]) {
-      if (proxy.name == addedProxyName) {
-        continue;
-      }
-    }
-    unknownAreaProxies.push(proxy.name);
-  }
+function handleUnknownAreaProxies(content) {
+  // 已知地区的
+  const added = new Set(selectNode["proxies"]);
+  // 未知地区的
+  const unknownAreaProxies = content.proxies
+    .filter((proxy) => !added.has(proxy.name))
+    .map((proxy) => proxy.name);
 
   for (let proxyName of unknownAreaProxies) {
     //选择节点
@@ -821,7 +818,7 @@ function handleUnknownAreaProxies(content, unknownAreaProxies) {
     loadBalance["proxies"].push(proxyName);
   }
 
-  console.log("unknownAreaProxies:::", unknownAreaProxies);
+  console.log(unknownAreaProxies);
   // 保存未知地区的
   if (unknownAreaProxies.length > 0) {
     let areaJson = {};
@@ -829,7 +826,7 @@ function handleUnknownAreaProxies(content, unknownAreaProxies) {
     areaJson["name"] = regionName;
     areaJson["type"] = "url-test";
     areaJson["proxies"] = unknownAreaProxies;
-    areaJson["url"] = "https://www.gstatic.com/generate_204";
+    areaJson["url"] = speedTestUrl;
     areaJson["interval"] = intervalTime;
     //放到yml中
     content["proxy-groups"].push(areaJson);
