@@ -162,6 +162,7 @@ const rules = [
   "RULE-SET,google,📫 Google",
   "RULE-SET,reject,🛑 全球拦截",
   "RULE-SET,telegramcidr,📲 Telegram",
+  "RULE-SET,openai,🤖 OpenAI",
   "RULE-SET,gfw,🪜 代理",
   "RULE-SET,proxy,🪜 代理",
   "MATCH,🐟 未命中规则",
@@ -678,6 +679,18 @@ let microsoft = {
     "🛑 全球拦截",
   ],
 };
+//OpenAI
+let openai = {
+  name: "🤖 OpenAI",
+  type: "select",
+  proxies: [
+    "♻️ 自动选择",
+    "✅ 选择地区",
+    "✨ 选择节点",
+    "🌏 全球直连",
+    "🛑 全球拦截",
+  ],
+};
 //其他没命中的
 let others = {
   name: "🐟 未命中规则",
@@ -708,6 +721,7 @@ let builtInProxyGroups = [
   telegram,
   youtube,
   microsoft,
+  openai,
   others,
 ];
 
@@ -744,6 +758,48 @@ function matchArea(proxyName, area, excludes) {
   return false;
 }
 
+
+// 添加地区组到预置分组
+function addToPresetGroup(regionName) {
+  selectArea["proxies"].push(regionName);
+  fallback["proxies"].push(regionName);
+  automatic["proxies"].push(regionName);
+  google["proxies"].push(regionName);
+  openai["proxies"].push(regionName);
+}
+
+// 处理未知地区分组
+function handleUnknownAreaProxies(content) {
+  // 已知地区的
+  const added = new Set(selectNode["proxies"]);
+  // 未知地区的
+  const unknownAreaProxies = content.proxies
+    .filter((proxy) => !added.has(proxy.name))
+    .map((proxy) => proxy.name);
+
+  for (let proxyName of unknownAreaProxies) {
+    //选择节点
+    selectNode["proxies"].push(proxyName);
+    //负载均衡
+    loadBalance["proxies"].push(proxyName);
+  }
+
+  console.log(unknownAreaProxies);
+  // 保存未知地区的
+  if (unknownAreaProxies.length > 0) {
+    let areaJson = {};
+    let regionName = "未知地区";
+    areaJson["name"] = regionName;
+    areaJson["type"] = "url-test";
+    areaJson["proxies"] = unknownAreaProxies;
+    areaJson["url"] = speedTestUrl;
+    areaJson["interval"] = intervalTime;
+    //放到yml中
+    content["proxy-groups"].push(areaJson);
+    //对几个预置的规则进行处理
+    addToPresetGroup(regionName);
+  }
+}
 function main(config, profileName) {
   let content = JSON.parse(JSON.stringify(config));
   //置空proxy-groups,添加自己的规则
@@ -783,10 +839,9 @@ function main(config, profileName) {
       //放到yml中
       content["proxy-groups"].push(areaJson);
       //对几个预置的规则进行处理
-      selectArea["proxies"].push(regionName);
-      fallback["proxies"].push(regionName);
-      automatic["proxies"].push(regionName);
+      addToPresetGroup(regionName);
     }
+
   }
 
   // 处理未知地区分组
@@ -798,41 +853,14 @@ function main(config, profileName) {
    * {@link https://github.com/Loyalsoldier/clash-rules}
    */
   content["proxy-groups"] = builtInProxyGroups.concat(content["proxy-groups"]);
+
+  // 禁用 dns解析，避免和openvpn冲突
+  content['dns']['enable'] = false
+
+  // 使用redir-host
+  // content['dns']['enhanced-mode'] = 'redir-host'
+
   // console.log(content);
   return content;
 }
 
-// 处理未知地区分组
-function handleUnknownAreaProxies(content) {
-  // 已知地区的
-  const added = new Set(selectNode["proxies"]);
-  // 未知地区的
-  const unknownAreaProxies = content.proxies
-    .filter((proxy) => !added.has(proxy.name))
-    .map((proxy) => proxy.name);
-
-  for (let proxyName of unknownAreaProxies) {
-    //选择节点
-    selectNode["proxies"].push(proxyName);
-    //负载均衡
-    loadBalance["proxies"].push(proxyName);
-  }
-
-  console.log(unknownAreaProxies);
-  // 保存未知地区的
-  if (unknownAreaProxies.length > 0) {
-    let areaJson = {};
-    let regionName = "未知地区";
-    areaJson["name"] = regionName;
-    areaJson["type"] = "url-test";
-    areaJson["proxies"] = unknownAreaProxies;
-    areaJson["url"] = speedTestUrl;
-    areaJson["interval"] = intervalTime;
-    //放到yml中
-    content["proxy-groups"].push(areaJson);
-    //对几个预置的规则进行处理
-    selectArea["proxies"].push(regionName);
-    fallback["proxies"].push(regionName);
-    automatic["proxies"].push(regionName);
-  }
-}
