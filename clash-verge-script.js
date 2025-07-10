@@ -2,6 +2,15 @@
 
 // 规则
 const rules = [
+  "DOMAIN-SUFFIX,duckduckgo.com,🪜 代理",
+  "DOMAIN-KEYWORD,mousegesturesapi,REJECT",
+  "DOMAIN-SUFFIX,linuxmail.cc,🪜 代理",
+  "DOMAIN-KEYWORD,binance,coin",
+  "DOMAIN-KEYWORD,unpkg,DIRECT",
+  "DOMAIN-KEYWORD,天猫机场,🪜 代理",
+  "DOMAIN-KEYWORD,52pokemon,🪜 代理",
+  "DOMAIN-SUFFIX,civitai.com,🪜 代理",
+  "DOMAIN-SUFFIX,github.com,🪜 代理",
   "DOMAIN-SUFFIX,graalvm.org,🪜 代理",
   "DOMAIN-SUFFIX,linux.do,🪜 代理",
   "DOMAIN-SUFFIX,wallhaven.cc,🪜 代理",
@@ -9,6 +18,7 @@ const rules = [
   "DOMAIN-SUFFIX,grok.com,🪜 代理",
   "DOMAIN-SUFFIX,pika.art,🪜 代理",
   "DOMAIN-SUFFIX,serv00.com,DIRECT",
+  "DOMAIN-SUFFIX,download-cdn.jetbrains.com,DIRECT",
   "PROCESS-NAME,v2ray,DIRECT",
   "PROCESS-NAME,xray,DIRECT",
   "PROCESS-NAME,naive,DIRECT",
@@ -55,7 +65,6 @@ const rules = [
   "PROCESS-NAME,WebTorrent.exe,DIRECT",
   "DOMAIN,clash.razord.top,DIRECT",
   "DOMAIN,yacd.haishan.me,DIRECT",
-  "GEOIP,CN,DIRECT",
   "PROCESS-NAME,OneDrive,Ⓜ️ 微软服务",
   "PROCESS-NAME,OneDriveUpdater,Ⓜ️ 微软服务",
   "DOMAIN-KEYWORD,1drv,Ⓜ️ 微软服务",
@@ -155,6 +164,7 @@ const rules = [
   "DOMAIN-KEYWORD,youtube,📺 Youtube",
   "RULE-SET,lancidr,DIRECT",
   "RULE-SET,cncidr,DIRECT",
+  "GEOIP,CN,DIRECT",
   "RULE-SET,private,⛓️ 私有网络",
   "RULE-SET,direct,🌏 全球直连",
   "RULE-SET,icloud,☁️ Icloud",
@@ -183,7 +193,7 @@ let areas = [
   { flag: "🇦🇷", name: "阿根廷" },
   { flag: "🇦🇸", name: "美属萨摩亚" },
   { flag: "🇦🇹", name: "奥地利" },
-  { flag: "🇦🇺", name: "澳大利亚" },
+  { flag: "🇦🇺", name: "澳大利亚", ext: ["悉尼"] },
   { flag: "🇦🇼", name: "阿鲁巴" },
   { flag: "🇦🇽", name: "奥兰群岛" },
   { flag: "🇦🇿", name: "阿塞拜疆" },
@@ -665,6 +675,7 @@ let youtube = {
     "✨ 选择节点",
     "🌏 全球直连",
     "🛑 全球拦截",
+    "🔄 负载均衡",
   ],
 };
 //微软
@@ -682,6 +693,18 @@ let microsoft = {
 //OpenAI
 let openai = {
   name: "🤖 OpenAI",
+  type: "select",
+  proxies: [
+    "♻️ 自动选择",
+    "✅ 选择地区",
+    "✨ 选择节点",
+    "🌏 全球直连",
+    "🛑 全球拦截",
+  ],
+};
+//coin
+let coin = {
+  name: "coin",
   type: "select",
   proxies: [
     "♻️ 自动选择",
@@ -722,6 +745,7 @@ let builtInProxyGroups = [
   youtube,
   microsoft,
   openai,
+  coin,
   others,
 ];
 
@@ -766,6 +790,7 @@ function addToPresetGroup(regionName) {
   automatic["proxies"].push(regionName);
   google["proxies"].push(regionName);
   openai["proxies"].push(regionName);
+  coin["proxies"].push(regionName);
 }
 
 // 处理未知地区分组
@@ -813,7 +838,7 @@ function main(config, profileName) {
     let areaJson = {},
       proxies = [],
       regionName = area.flag + " " + area.name;
-    for (let proxy of content.proxies) {
+    for (let proxy of (content.proxies || content.proxy)) {
       if (proxy.server === undefined) break;
       //如果匹配上了就加入
       if (matchArea(proxy.name, area, "🔒")) {
